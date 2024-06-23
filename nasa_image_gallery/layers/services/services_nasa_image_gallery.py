@@ -1,8 +1,8 @@
 # capa de servicio/lógica de negocio
 
-from ..transport import transport
+from nasa_image_gallery.layers.transport.transport import getAllImages
 from ..dao import repositories
-from ..generic import mapper
+from nasa_image_gallery.layers.generic.mapper import fromRequestIntoNASACard
 from django.contrib.auth import get_user
 
 def GetAllImages(input=None):
