@@ -2,9 +2,9 @@
 # si se necesita algún dato (lista, valor, etc), esta capa SIEMPRE se comunica con services_nasa_image_gallery.py
 
 from django.shortcuts import redirect, render
-from .layers.services.services_nasa_image_gallery import GetAllImages
+from .layers.services.services_nasa_image_gallery import getAllImagesfromTransport, getImagesBySearchInputLike, get_Favourites_User, saveFavourite, deleteFavourite
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import logout
+from django.contrib.auth import login, logout, authenticate
 
 # función que invoca al template del índice de la aplicación.
 def index_page(request):
@@ -12,8 +12,8 @@ def index_page(request):
 
 # auxiliar: retorna 2 listados -> uno de las imágenes de la API y otro de los favoritos del usuario.
 def getAllImagesAndFavouriteList(request):
-    favourite_list = []
-    images = GetALLImages()
+    favourite_list = get_Favourites_User(request)
+    images = getAllImagesfromTransport()
 
     return images, favourite_list
 
@@ -26,18 +26,30 @@ def home(request):
 
 
 # función utilizada en el buscador.
-def search(request):
-    images, favourite_list = getAllImagesAndFavouriteList(request)
-    search_msg = request.POST.get('query', '')
+def search(request): images = []
+    search_msg = request.POST.get('query', '') 
+    if search_msg != "":
+        images = getImagesBySearchInputLike(search_msg)
+        return render(request, 'home.html', {'images': images })
+    # si el usuario no ingresó texto alguno, debe refrescar la página; caso contrario, debe filtrar aquellas imágenes que posean el texto de búsqueda.
+    return redirect(home) 
 
     # si el usuario no ingresó texto alguno, debe refrescar la página; caso contrario, debe filtrar aquellas imágenes que posean el texto de búsqueda.
-    pass
 
+def user_login(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username = username, password = password)
+        if user is not None:
+            login(request, user)
+            # Redirige a la página de inicio o a alguna otra página después del inicio de sesión exitoso
+            return redirect(index_page) 
 
 # las siguientes funciones se utilizan para implementar la sección de favoritos: traer los favoritos de un usuario, guardarlos, eliminarlos y desloguearse de la app.
 @login_required
 def getAllFavouritesByUser(request):
-    favourite_list = []
+    favourite_list = get_Favourites_User(request)
     return render(request, 'favourites.html', {'favourite_list': favourite_list})
 
 
@@ -53,4 +65,5 @@ def deleteFavourite(request):
 
 @login_required
 def exit(request):
-    pass
+    logout(request)
+    return redirect(index_page)
